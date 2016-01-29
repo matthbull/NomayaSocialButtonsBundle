@@ -23,7 +23,8 @@ THE SOFTWARE.
 
 namespace Nomaya\SocialBundle\Twig\Extension;
 
-class NomayaTwigSocialLinks extends \Twig_Extension{
+
+class NomayaTwigSocialLinks extends \Twig_Extension {
 
     protected $container;
 
@@ -32,55 +33,64 @@ class NomayaTwigSocialLinks extends \Twig_Extension{
      *
      * @param ContainerInterface $container
      */
-    public function __construct($container)
-    {
+    public function __construct( $container ) {
         $this->container = $container;
     }
     
-    public function getName()
-    {
+    public function getName() {
         return 'nomaya_social_links';
     }
     
-    public function getFunctions()
-    {
-      return array(
-        'socialLinks'     => new \Twig_Function_Method($this, 'getSocialLinks' ,array('is_safe' => array('html'))),
-        'socialLink'     => new \Twig_Function_Method($this, 'getSocialLink' ,array('is_safe' => array('html')))
-      );
+    public function getFunctions() {
+        if ( class_exists( '\Twig_SimpleFunction' ) ) { // newer non-deprecated class call if available
+            $links = [
+                new \Twig_SimpleFunction( 'socialLinks', [ $this, 'getSocialLinks' ], [ 'is_safe' => [ 'html' ] ] ),
+                new \Twig_SimpleFunction( 'socialLink', [ $this, 'getSocialLink' ], [ 'is_safe' => [ 'html' ] ] ),
+            ];
+        } else {
+            $links = [
+                'socialLinks' => new \Twig_Function_Method( $this, 'getSocialLinks', [ 'is_safe' => [ 'html' ] ] ),
+                'socialLink'  => new \Twig_Function_Method( $this, 'getSocialLink', [ 'is_safe' => [ 'html' ] ] ),
+            ];
+        }
+
+        return $links;
     }
 
-    public function getSocialLinks($parameters = array())
-    {
-      $networks = array('facebook', 'twitter', 'googleplus', 'linkedin', 'tumblr', 'pinterest', 'youtube', 'instagram');
-      foreach ($networks as $network)
-      {
-          // no parameters were defined, keeps default values
-          if (!array_key_exists($network, $parameters)){
-            $render_parameters[$network] = array();
-          // parameters are defined, overrides default values
-          } else if (is_array($parameters[$network])){
-            $render_parameters[$network] = $parameters[$network];
-          // the button is not displayed 
-          } else {
-            $render_parameters[$network] = false;
-          }
-      }
+    public function getSocialLinks( $parameters = [ ] ) {
+        $networks = [ 'facebook', 'twitter', 'googleplus', 'linkedin', 'tumblr', 'pinterest', 'youtube', 'instagram' ];
+        foreach ( $networks as $network ) {
+            // no parameters were defined, keeps default values
+            if ( !array_key_exists( $network, $parameters ) ) {
+                $render_parameters[ $network ] = [ ];
+                // parameters are defined, overrides default values
+            } else if ( is_array( $parameters[ $network ] ) ) {
+                $render_parameters[ $network ] = $parameters[ $network ];
+                // the button is not displayed
+            } else {
+                $render_parameters[ $network ] = false;
+            }
+        }
 
-      // get the helper service and display the template
-      return $this->container->get('nomaya.socialLinksHelper')->socialLinks($render_parameters);
+        // get the helper service and display the template
+        return $this->container->get( 'nomaya.socialLinksHelper' )
+                               ->socialLinks( $render_parameters );
     }
 
     // https://developers.facebook.com/docs/reference/plugins/like/ 
-    public function getSocialLink($network, $parameters = array())
-    {
-       // default values, you can override the values by setting them
-       $otherParameters = $this->container->hasParameter('links.'.$network) ? $this->container->getParameter('links.'.$network) : array();
-       $parameters = $parameters + $otherParameters;
+    public function getSocialLink( $network, $parameters = [ ] ) {
+        // default values, you can override the values by setting them
+        $otherParameters = $this->container->hasParameter( 'links.' . $network ) ? $this->container->getParameter( 'links.' . $network ) : [ ];
+        $parameters = $parameters + $otherParameters;
 
-       if (!array_key_exists('network', $parameters)) { $parameters = $parameters + array('network' => $network); }
-       if (!array_key_exists('theme', $parameters)) { $parameters = $parameters + array('theme' => $this->container->getParameter('social.theme')); }
+        if ( !array_key_exists( 'network', $parameters ) ) {
+            $parameters = $parameters + [ 'network' => $network ];
+        }
+        if ( !array_key_exists( 'theme', $parameters ) ) {
+            $parameters = $parameters + [ 'theme' => $this->container->getParameter( 'social.theme' ) ];
+        }
 
-       return !empty($parameters) && array_key_exists('url', $parameters) ? $this->container->get('nomaya.socialLinksHelper')->socialLink($parameters): false;
+        return !empty( $parameters ) && array_key_exists( 'url', $parameters ) ? $this->container->get( 'nomaya.socialLinksHelper' )
+                                                                                                 ->socialLink( $parameters ) : false;
     }
 }
